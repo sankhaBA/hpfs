@@ -1,12 +1,13 @@
 #ifndef _HPFS_VERSION_
 #define _HPFS_VERSION_
 
+#include <stdint.h>
 #include <string_view>
 
 namespace version
 {
     // HPFS version. Written to new files.
-    constexpr const char *HPFS_VERSION = "0.5.0";
+    constexpr const char *HPFS_VERSION = "0.5.1";
 
     // Version header size in bytes when serialized in binary format. (applies to hpfs version)
     // 2 bytes each for 3 version components. 2 bytes reserved.

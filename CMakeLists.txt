@@ -35,4 +35,4 @@ add_executable(hpfs
 target_link_libraries(hpfs
     pthread
     libfuse3.so.3
-    libblake3.so)
+    libblake3.a)

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdint.h>
 
 namespace hpfs::hmap::hasher
 {

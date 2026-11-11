@@ -27,22 +27,27 @@ tar -zxvf fuse-3.8.0.tar.gz
 pushd libfuse-fuse-3.8.0 > /dev/null 2>&1
 mkdir build
 pushd build > /dev/null 2>&1
-meson .. && ninja
+meson -Dexamples=false .. && ninja
 sudo ninja install
 popd > /dev/null 2>&1
 popd > /dev/null 2>&1
 rm fuse-3.8.0.tar.gz && sudo rm -r libfuse-fuse-3.8.0
 
-# Blake3
-git clone https://github.com/BLAKE3-team/BLAKE3.git
-pushd BLAKE3/c > /dev/null 2>&1
-gcc -shared -fPIC -O3 -o libblake3.so blake3.c blake3_dispatch.c blake3_portable.c \
+# Blake3 (pinned release, linked statically)
+blake3=1.8.7
+blake3_sha256=c6782a28842b1c0478524ac06a4f2ede784038ee298d6e2162c0b089c4306a3c
+wget https://github.com/BLAKE3-team/BLAKE3/archive/refs/tags/$blake3.tar.gz
+echo "$blake3_sha256  $blake3.tar.gz" | sha256sum -c -
+tar -zxvf $blake3.tar.gz
+pushd BLAKE3-$blake3/c > /dev/null 2>&1
+gcc -c -fPIC -O3 blake3.c blake3_dispatch.c blake3_portable.c \
     blake3_sse2_x86-64_unix.S blake3_sse41_x86-64_unix.S blake3_avx2_x86-64_unix.S \
     blake3_avx512_x86-64_unix.S
+ar rcs libblake3.a *.o
 sudo cp blake3.h /usr/local/include/
-sudo cp libblake3.so /usr/local/lib/
+sudo cp libblake3.a /usr/local/lib/
 popd > /dev/null 2>&1
-sudo rm -r BLAKE3
+rm $blake3.tar.gz && rm -r BLAKE3-$blake3
 
 # Plog
 wget https://github.com/SergiusTheBest/plog/archive/1.1.5.tar.gz

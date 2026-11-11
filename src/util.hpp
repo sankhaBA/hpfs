@@ -1,6 +1,7 @@
 #ifndef _HPFS_UTIL_
 #define _HPFS_UTIL_
 
+#include <stdint.h>
 #include <string>
 #include <vector>
 
