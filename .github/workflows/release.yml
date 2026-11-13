@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    container: ubuntu:20.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Verify configuration
+        run: |
+          : "${RELEASE_BRANCH:?Repository variable RELEASE_BRANCH is not set}"
+
+      - name: Install git and dev-setup.sh prerequisites
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git sudo wget
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Trust workspace
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Verify tag is on the release branch
+        if: github.ref_type == 'tag'
+        run: git merge-base --is-ancestor "$GITHUB_SHA" "origin/$RELEASE_BRANCH"
+
+      - name: Verify version
+        run: |
+          src_version=$(grep -oP 'HPFS_VERSION = "\K[^"]+' src/version.hpp)
+          if [ "$GITHUB_REF_TYPE" == "tag" ] && [ "$GITHUB_REF_NAME" != "$src_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match HPFS_VERSION $src_version"
+            exit 1
+          fi
+          echo "SRC_VERSION=$src_version" >>"$GITHUB_ENV"
+
+      - name: Build
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: bash dev-setup.sh
+
+      - name: Verify binary version
+        run: |
+          [ "$(./build/hpfs version)" == "$SRC_VERSION" ] ||
+            { echo "::error::Built hpfs does not print $SRC_VERSION"; exit 1; }
+
+  publish:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Create release (source only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "hpfs $TAG" \
+            --notes "hpfs $TAG. Hosts build it from source as part of the HotPocket engine release that names this tag. No binaries are attached."
