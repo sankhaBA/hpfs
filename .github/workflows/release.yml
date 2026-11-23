@@ -20,6 +20,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     container: ubuntu:20.04
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -31,7 +32,11 @@ jobs:
       - name: Install git and dev-setup.sh prerequisites
         run: |
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git sudo wget
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates git sudo wget tzdata
+          # dev-setup.sh runs apt through sudo, which drops DEBIAN_FRONTEND by default.
+          # Keep it so no package (e.g. tzdata) waits on an interactive prompt.
+          echo 'Defaults env_keep += "DEBIAN_FRONTEND"' >/etc/sudoers.d/keep-debian-frontend
+          ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
 
       - name: Checkout
         uses: actions/checkout@v4
